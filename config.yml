@@ -1,0 +1,49 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:18.12.0
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: npm install
+
+  test:
+    docker:
+      - image: cimg/node:18.12.0
+    steps:
+      - checkout
+      - run:
+          name: Install Dependencies
+          command: npm install
+      - run:
+          name: Run Tests
+          command: npm test
+
+  deploy:
+    docker:
+      - image: cimg/node:18.12.0
+    steps:
+      - checkout
+      - run:
+          name: Deploy to Production
+          command: echo "Deploying to production server"
+          # Add your deployment steps here
+
+workflows:
+  version: 2
+  build_test_deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: main
+
