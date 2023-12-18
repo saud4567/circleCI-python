@@ -1,260 +1,65 @@
 version: 2.1
 
 orbs:
-  github-release: haskell-works/github-release@1.3.3
-
-parameters:
-  src-repo-url:
-    type: string
-    default: https://github.com/esnet/iperf.git
-  branch-name:
-    type: string
-    default: "3.8.1"
-  common-build-params:
-    type: string
-    default: "--disable-shared --disable-static"
+  node: circleci/node@3.0.0
 
 jobs:
-  build-linux:
+  build:
+    working_directory: ~/mern-starter
+    # Reuse Docker container specification given by the node Orb
+    executor: node/default
+    steps:
+      - checkout
+      # Install the latest npm - the node Orb takes care of it
+      - node/install-npm
+      # Install dependencies - the node Orb take care of installation and dependency caching
+      - node/install-packages:
+          app-dir: ~/mern-starter
+          cache-path: node_modules
+          override-ci-command: npm i
+      # Save workspace for subsequent jobs (i.e. test)
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  test:
     docker:
-      - image: archlinux/base
-    parameters:
-      label:
-        type: string
-        default: iperf3-linux
+      # The primary container is an instance of the first image listed. The job's commands run in this container.
+      - image: cimg/node:current
+      # The secondary container is an instance of the second listed image which is run in a common network where ports exposed on the primary container are available on localhost.
+      - image: mongo:4.2
     steps:
-      - run:
-          name: Install dependencies
-          command: pacman -Syu --noconfirm openssl git gcc make awk tar
-      - run:
-          name: Clone iperf3
-          command: git clone << pipeline.parameters.src-repo-url >> -b << pipeline.parameters.branch-name >>
-      - run:
-          name: Build iperf3
-          working_directory: iperf
-          command: |
-            CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
-            IPERF3_MAKE_PREFIX=$CIRCLE_WORKING_DIRECTORY/<< parameters.label >>
-            ./configure --prefix=$IPERF3_MAKE_PREFIX << pipeline.parameters.common-build-params >>
-            make
-            mkdir -p $IPERF3_MAKE_PREFIX
-            make install
-      - run:
-          name: Create a tarball
-          command: tar -cJf << parameters.label >>.tar.xz << parameters.label >>
-      - persist_to_workspace:
-          root: .
-          paths:
-            - << parameters.label >>.tar.xz
-      - store_artifacts:
-          path: << parameters.label >>.tar.xz
-
-  build-windows:
-    machine:
-      image: windows-server-2019-vs2019:stable
-      shell: powershell.exe
-    resource_class: windows.medium
-    parameters:
-      label:
-        type: string
-        default: iperf3-cygwin64
-    steps:
-      - run:
-          name: Download Cygwin installer
-          shell: bash.exe
-          command: |
-            curl -sSJOL https://cygwin.com/setup-x86_64.exe
-      - run:
-          name: Install Cygwin and required packages
-          command: .\setup-x86_64.exe -q -s https://mirrors.kernel.org/sourceware/cygwin/ -P libssl-devel,git,gcc-core,make
-      - run:
-          name: Build iperf3 with Cygwin
-          shell: C:\\cygwin64\\bin\\bash.exe --login -eo pipefail
-          command: |
-            CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
-            IPERF3_MAKE_PREFIX=$CIRCLE_WORKING_DIRECTORY/<< parameters.label >>
-            cd $CIRCLE_WORKING_DIRECTORY
-            git clone << pipeline.parameters.src-repo-url >> -b << pipeline.parameters.branch-name >>
-            cd iperf
-            ./configure --prefix=$IPERF3_MAKE_PREFIX << pipeline.parameters.common-build-params >>
-            make
-            mkdir -p $IPERF3_MAKE_PREFIX
-            make install
-            cp /usr/bin/cygwin1.dll /usr/bin/cygcrypto-1.1.dll /usr/bin/cygz.dll -t $IPERF3_MAKE_PREFIX/bin
-      - run:
-          name: Create a Zip file
-          command: |
-            $ProgressPreference = "SilentlyContinue"
-            Compress-Archive .\\<< parameters.label >> .\\<< parameters.label >>.zip
-      - persist_to_workspace:
-          root: .
-          paths:
-            - << parameters.label >>.zip
-      - store_artifacts:
-          path: << parameters.label >>.zip
-
-  build-macos:
-    macos:
-      xcode: 14.2.0
-    parameters:
-      label:
-        type: string
-        default: iperf3-macos
-    steps:
-      - run:
-          name: Clone iperf3
-          command: git clone << pipeline.parameters.src-repo-url >> -b << pipeline.parameters.branch-name >>
-      - run:
-          name: Build iperf3
-          working_directory: iperf
-          command: |
-            CIRCLE_WORKING_DIRECTORY=$(eval "echo $CIRCLE_WORKING_DIRECTORY")
-            IPERF3_MAKE_PREFIX=$CIRCLE_WORKING_DIRECTORY/<< parameters.label >>
-            ./configure --prefix=$IPERF3_MAKE_PREFIX --with-openssl=$(brew --prefix openssl) << pipeline.parameters.common-build-params >>
-            make
-            mkdir -p $IPERF3_MAKE_PREFIX
-            make install
-            # Postruns
-            cd $IPERF3_MAKE_PREFIX/bin
-            # Copy linked OpenSSL libraris to the current directory
-            # and tell the linker to refer to them
-            otool -L iperf3 | grep openssl | awk '{ print $1 }' | while read dylib
-            do
-              name=$(basename $dylib)
-              cp $dylib ./
-              chmod u+w $name
-              install_name_tool -change $dylib @executable_path/$name iperf3
-            done
-            # Modify libssl as well
-            otool -L libssl.1.1.dylib | grep openssl | awk '{ print $1 }' | while read dylib
-            do
-              install_name_tool -change $dylib @executable_path/$(basename $dylib) libssl.1.1.dylib
-            done
-      - run:
-          name: Create a Zip file
-          command: zip -r << parameters.label >>.zip << parameters.label >>
-      - persist_to_workspace:
-          root: .
-          paths:
-            - << parameters.label >>.zip
-      - store_artifacts:
-          path: << parameters.label >>.zip
-
-  test-linux:
-    docker:
-      - image: cimg/base:stable
-    parameters:
-      label:
-        type: string
-        default: iperf3-linux
-    steps:
-      - attach_workspace:
-          at: ./
-      - run:
-          name: Extract << parameters.label >>.tar.xz
-          command: tar -xf << parameters.label >>.tar.xz
-      - run:
-          name: Test executable
-          command: << parameters.label >>/bin/iperf3 -v
-      - run:
-          name: Run as a server
-          command: << parameters.label >>/bin/iperf3 -s
-          background: true
-      - run:
-          name: Run as a client
-          command: << parameters.label >>/bin/iperf3 -c localhost -R
-
-  test-windows:
-    machine:
-      image: windows-server-2019-vs2019:stable
-      shell: powershell.exe
-    resource_class: windows.medium
-    parameters:
-      label:
-        type: string
-        default: iperf3-cygwin64
-    steps:
+      # Reuse the workspace from the build job
       - attach_workspace:
           at: .
       - run:
-          name: Extract iperf3-cygwin64.zip
+          name: Demonstrate that Mongo DB is available as localhost
           command: |
-            $ProgressPreference = "SilentlyContinue"
-            Expand-Archive .\\<< parameters.label >>.zip .
+            curl -sSJL https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+            echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+            sudo apt update
+            sudo apt install mongodb-org
+            mongo localhost --eval "db.serverStatus()"
       - run:
-          name: Test executable
-          command: .\\<< parameters.label >>\bin\iperf3.exe -v
+          name: Test
+          command: npm test
       - run:
-          name: Run as a server
-          command: .\\<< parameters.label >>\bin\iperf3.exe -s
-          background: true
-      - run:
-          name: Run as a client
-          command: .\\<< parameters.label >>\bin\iperf3.exe -c localhost -R
-
-  test-macos:
-    macos:
-      xcode: 14.2.0
-    parameters:
-      label:
-        type: string
-        default: iperf3-macos
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Uninstall pre-installed OpenSSL
-          command: brew uninstall --ignore-dependencies openssl
-      - run:
-          name: Extract << parameters.label >>
-          command: unzip << parameters.label >>
-      - run:
-          name: Test executable
-          command: << parameters.label >>/bin/iperf3 -v
-      - run:
-          name: Run as a server
-          command: << parameters.label >>/bin/iperf3 -s
-          background: true
-      - run:
-          name: Run as a client
-          command: << parameters.label >>/bin/iperf3 -c localhost -R
-
-  release:
-    executor: github-release/default
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Compute version number
-          command: |
-            echo 'export IPERF3_BUILD_VERSION="<< pipeline.parameters.branch-name>>-${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}"' | tee -a "$BASH_ENV"
-      - github-release/release:
-          tag: v$IPERF3_BUILD_VERSION
-          title: $IPERF3_BUILD_VERSION
-          artefacts-folder: .
+          name: Generate code coverage
+          command: './node_modules/.bin/nyc report --reporter=text-lcov'
+      # You can specify either a single file or a directory to store as artifacts
+      - store_artifacts:
+          path: test-results.xml
+          destination: deliverable.xml
+      - store_artifacts:
+          path: coverage
+          destination: coverage
 
 workflows:
-  build-test-release:
+  build_and_test:
     jobs:
-      - build-linux
-      - build-windows
-      - build-macos
-      - test-linux:
+      - build
+      - test:
           requires:
-            - build-linux
-      - test-windows:
-          requires:
-            - build-windows
-      - test-macos:
-          requires:
-            - build-macos
-      - release:
-          requires:
-            - test-linux
-            - test-windows
-            - test-macos
-          context: github
-          filters:
-            branches:
-              only: main
+            - build
 
