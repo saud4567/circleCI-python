@@ -3,33 +3,17 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: node:14 # Use the Node.js 14 Docker image
-
-    working_directory: ~/app
+      - image: circleci/python:3.8
 
     steps:
-      - checkout # Check out the code into the specified directory
-
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "package.json" }}
+      - checkout
 
       - run:
-          name: Install Dependencies
-          command: npm install
-
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
+          name: Display SSH Fingerprint
+          command: |
+            ssh-keygen -lf /home/ec2-user/.ssh/id_rsa
 
       - run:
-          name: Run Tests
-          command: npm test
-
-workflows:
-  version: 2
-  build:
-    jobs:
-      - build
-
+          name: SSH into Server and Git Pull
+          command: |
+            ssh -i /home/ec2-user/.ssh/id_rsa ec2-user@34.253.191.231 "cd /home/ec2-user/circlci.sh/config.yml && git pull"
