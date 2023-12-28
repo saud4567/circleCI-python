@@ -13,7 +13,7 @@ jobs:
           name: Display SSH Fingerprint
           command: |
             echo "Checking SSH key fingerprint..."
-            ssh-keygen -lf /home/ec2-user/.ssh/id_rsa
+            ssh-keygen -lf /home/ec2-user/.ssh
 
       # Enable SSH agent and add SSH key
       - add_ssh_keys:
@@ -24,4 +24,4 @@ jobs:
       - run:
           name: SSH into Server and Git Pull
           command: |
-            ssh -i /home/ec2-user/.ssh/id_rsa ec2-user@34.253.191.231 "cd /home/ec2-user/circlci.sh/config.yml && git pull"
+            ssh -i /home/ec2-user/.ssh ec2-user@34.253.191.231 "cd /home/ec2-user/circlci.sh && git pull"
