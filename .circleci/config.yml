@@ -13,7 +13,7 @@ jobs:
           name: Display SSH Fingerprint
           command: |
             echo "Checking SSH key fingerprint..."
-           sudo mkdir -p /home/ec2-user/.ssh
+            mkdir -p /home/ec2-user/.ssh
             ssh-keygen -lf /home/ec2-user/.ssh
 
       # Enable SSH agent and add SSH key
