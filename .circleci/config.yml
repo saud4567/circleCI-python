@@ -21,8 +21,11 @@ jobs:
           fingerprints:
             - "39:55:42:95:99:2e:df:f4:e7:fb:f3:a4:2c:b6:53:91"
 
-      # SSH into Server and Git Pull
-      - run:
-          name: SSH into Server and Git Pull
-          command: |
-            ssh -i ~/.ssh/id_rsa ec2-user@54.170.49.64 "cd /home/ec2-user/circlci.sh && git pull"
+     # ...
+
+# SSH into Server and Git Pull
+- run:
+    name: SSH into Server and Git Pull
+    command: |
+      ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@54.170.49.64 "cd /home/ec2-user/circlci.sh && git pull"
+
