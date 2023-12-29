@@ -27,5 +27,5 @@ jobs:
 - run:
     name: SSH into Server and Git Pull
     command: |
-      ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@54.170.49.64 "cd /home/ec2-user/circlci.sh && git pull"
+      ssh -i ~/.ssh/id_rsa ec2-user@54.170.49.64 "cd /home/ec2-user/circlci.sh && git pull"
 
