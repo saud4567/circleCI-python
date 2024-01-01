@@ -25,4 +25,4 @@ jobs:
       - run:
           name: SSH into Server and Git Pull
           command: |
-            ssh -i /home/ec2-user/.ssh/id_ed25519 ec2-user@3.249.156.149 "cd /home/ec2-user/.circleci && git pull"
+            ssh -i /home/ec2-user/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
