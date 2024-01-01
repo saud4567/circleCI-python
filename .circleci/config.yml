@@ -19,7 +19,7 @@ jobs:
       # Enable SSH agent and add SSH key
       - add_ssh_keys:
           fingerprints:
-            - "2c:e2:8a:9e:50:34:16:73:ec:ec:40:e3:96:6d:7f:e9"
+            - "SHA256:Q3O9PCeQT25szz8mA531uM8vck9+ynBw+fLV9xzksQg"
 
       # SSH into Server and Git Pull
       - run:
