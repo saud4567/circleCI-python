@@ -11,7 +11,7 @@ jobs:
       # Display SSH Fingerprint
       - run:
           name: Display SSH Fingerprint
-          command: |
+          command: 
             echo "Checking SSH key fingerprint..."
             mkdir -p ~/.ssh
             ssh-keygen -lf ~/.ssh/id_ed25519
@@ -25,4 +25,4 @@ jobs:
       - run:
           name: SSH into Server and Git Pull
           command: |
-            ssh -i /home/ec2-user/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
+              ssh -i /home/circleci/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
