@@ -15,7 +15,7 @@ jobs:
           command: |
             # Install SSH key
             echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-            chmod 600 ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_ed25519
 
             # SSH into the EC2 instance and run your deployment script
             ssh -i ~/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
