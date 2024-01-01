@@ -1,28 +1,31 @@
 version: 2.1
 
 jobs:
-  build:
+  deploy:
     docker:
       - image: circleci/python:3.8
 
     steps:
       - checkout
 
-      # Display SSH Fingerprint
-      - run:
-          name: Display SSH Fingerprint
-          command: 
-            echo "Checking SSH key fingerprint..."
-            mkdir -p ~/.ssh
-            ssh-keygen -lf ~/.ssh/id_ed25519
+      # Install any dependencies required for your deployment script
 
-      # Enable SSH agent and add SSH key
-      - add_ssh_keys:
-          fingerprints:
-            - "2c:e2:8a:9e:50:34:16:73:ec:ec:40:e3:96:6d:7f:e9"
-
-      # SSH into Server and Git Pull
       - run:
-          name: SSH into Server and Git Pull
+          name: Deploy to EC2
           command: |
-              ssh -i /home/ec2-user/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
+            # Install SSH key
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_rsa
+
+            # SSH into the EC2 instance and run your deployment script
+            ssh -i ~/.ssh/id_ed25519 ec2-user@3.252.52.213 "cd /home/ec2-user/.circleci && git pull"
+
+workflows:
+  version: 2
+  deploy:
+    jobs:
+      - deploy:
+          filters:
+            branches:
+              only:
+                - main
