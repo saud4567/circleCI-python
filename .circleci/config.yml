@@ -6,7 +6,7 @@ jobs:
   build:
     docker:
       - image: circleci/node:16
-    working_directory: ~/repo
+    working_directory: ~/home/ubuntu/Nike-shoes-website/Nikeshoeswebs/.circleci
     steps:
       - checkout
       - run:
@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Deploy to S3
           command: |
-            aws configure set aws_access_key_id "AKIATCKASRC3IOY4WGNJ
+            aws configure set aws_access_key_id "AKIATCKASRC3IOY4WGNJ"
             aws configure set aws_secret_access_key "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"
             aws s3 sync dist/ s3://react-bucket1 --delete
 
